@@ -41,7 +41,7 @@ pub async fn run_client() {
     let mut chunks = vec![];
     let material = vec![BlockState::GRASS, BlockState::STONE, BlockState::SAND, BlockState::DIRT];
 
-    for i in 0..24 {
+    for i in 0..36 {
         let mut chunk = Chunk::EMPTY;
         let mut dec = 0;
         for y in 0..CHUNK_SIZE_16 {
@@ -62,42 +62,27 @@ pub async fn run_client() {
     }
 
     let size = CHUNK_SIZE_16 as f32;
-    let mut y = 0.0;
-    chunks[0].set_pos(0.0, y, 0.0);
-    chunks[1].set_pos( 0.0 - size, y, 0.0);
-    chunks[2].set_pos(0.0, y, 0.0 - size);
-    chunks[3].set_pos(0.0 - size, y, 0.0 - size);
+    let mut y = 0.0 - size;
+    let x = 0.0;
+    let z = 0.0;
+    let mut i = 0;
+    while i < 36 {
+        chunks[i].set_pos(x, y, z);
+        chunks[i+1].set_pos(x, y, 0.0 - size);
+        chunks[i+2].set_pos(x, y, size);
 
-    y = size;
-    chunks[4].set_pos(0.0, y, 0.0);
-    chunks[5].set_pos( 0.0 - size, y, 0.0);
-    chunks[6].set_pos(0.0, y, 0.0 - size);
-    chunks[7].set_pos(0.0 - size, y, 0.0 - size);
+        chunks[i+3].set_pos(size, y, z);
+        chunks[i+4].set_pos(0.0 - size, y, z);
+        chunks[i+5].set_pos(size, y, size);
 
-    y = 0.0 - size;
-    chunks[8].set_pos(0.0, y, 0.0);
-    chunks[9].set_pos(0.0 - size, y, 0.0);
-    chunks[10].set_pos(0.0, y, 0.0 - size);
-    chunks[11].set_pos(0.0 - size, y, 0.0 - size);
+        chunks[i+6].set_pos(size, y, 0.0 - size);
+        chunks[i+7].set_pos(0.0 - size, y, 0.0 - size);
+        chunks[i+8].set_pos(0.0 - size, y, size);
 
-    y = 0.0 - 2.0 * size;
-    chunks[12].set_pos(0.0, y, 0.0);
-    chunks[13].set_pos( 0.0 - size, y, 0.0);
-    chunks[14].set_pos(0.0, y, 0.0 - size);
-    chunks[15].set_pos(0.0 - size, y, 0.0 - size);
-
-    y = 0.0 - 3.0 * size;
-    chunks[16].set_pos(0.0, y, 0.0);
-    chunks[17].set_pos( 0.0 - size, y, 0.0);
-    chunks[18].set_pos(0.0, y, 0.0 - size);
-    chunks[19].set_pos(0.0 - size, y, 0.0 - size);
-
-    y = 2.0 * size;
-    chunks[20].set_pos(0.0, y, 0.0);
-    chunks[21].set_pos( 0.0 - size, y, 0.0);
-    chunks[22].set_pos(0.0, y, 0.0 - size);
-    chunks[23].set_pos(0.0 - size, y, 0.0 - size);
-
+        i+=9;
+        y += size;
+    }
+   
 
     setup_mouse_cursor();
     let mut fps_mean = vec![];
