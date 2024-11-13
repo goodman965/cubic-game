@@ -1,72 +1,32 @@
-use macroquad::prelude::*;
+use macroquad::prelude::{Mesh, Texture2D};
+use crate::world::CHUNK_SIZE_16;
+use crate::world::render::{BlockPos, ChunkModel};
 
-use super::*;
-
-const VERT_CAP: usize = 833 * 4;
-const IND_CAP: usize = 833 * 6;
-
-pub struct Meshes {
-    vertices: Vec<Vertex>,
-    indices: Vec<u16>,
-    texture: Option<Texture2D>,
-}
-
-impl Meshes {
-    pub fn new(texture: Option<Texture2D>) -> Self {
-        Self {
-            vertices: Vec::with_capacity(16 * 16),
-            indices: Vec::with_capacity(16 * 16 * 3 / 2),
-            texture,
+pub fn build_model_meshes(
+    model: ChunkModel,
+    atlas: Option<Texture2D>,
+) -> Vec<Mesh> {
+    let mut ans= vec![];
+    let atlas = atlas.unwrap();
+    if let Some(layers) = model.0{
+        for (y, layer) in layers.iter().enumerate() {
+            for x in 0..CHUNK_SIZE_16 {
+                for z in 0..CHUNK_SIZE_16 {
+                    let block = layer.get(x,z);
+                    let block_meshes = block.get_meshes(&atlas, BlockPos {
+                        x: x as isize,
+                        y: y as isize,
+                        z: z as isize,
+                    });
+                    ans.extend(block_meshes);
+                }
+            }
         }
     }
+    ans
 }
 
-impl Meshes {
-    pub fn extend_with(
-        &mut self,
-        block_pos: BlockPos,
-        texture: UvTexture,
-        funcs: &[fn(BlockPos, UvTexture) -> [Vertex; 4]],
-    ) {
-        for func in funcs {
-            self.indices.extend(PLANE_IND.map(|i| self.vertices.len() as u16 + i));
-            self.vertices.extend(func(block_pos, texture));
-        }
-    }
-}
-
-#[rustfmt::skip]
-const PLANE_IND: [u16; 6] = [
+pub const PLANE_IND: [u16; 6] = [
     0, 1, 2,
     0, 3, 2,
 ];
-
-impl Meshes {
-
-    #[rustfmt::skip]
-    pub fn into_iter(self) -> impl Iterator<Item = Mesh> {
-        let Meshes { vertices, indices, texture } = self;
-
-        let mut meshes: Vec<Mesh> = Vec::with_capacity(vertices.len() / VERT_CAP);
-
-        let ind = indices.chunks(IND_CAP);
-        let mut vert = vertices.chunks(VERT_CAP);
-
-        const N_IND_IN_FULL_MESH: usize = 3_332;
-
-        for (i, meshes_ind) in ind.enumerate() {
-            meshes.push(Mesh { 
-                vertices: Vec::from(vert.next().unwrap()), 
-                indices: Vec::from_iter(meshes_ind.iter().map(|ind| ind - (i * N_IND_IN_FULL_MESH) as u16)), 
-                texture: texture.clone(),
-            });
-        }
-
-        for (n, mesh) in meshes.iter().enumerate() {
-            assert!(mesh.indices.len() <= IND_CAP, "Mesh #{} has {} IND", n, mesh.indices.len());
-            assert!(mesh.vertices.len() <= VERT_CAP, "Mesh #{} has {} VERT", n, mesh.indices.len());
-        }
-
-        meshes.into_iter()
-    }
-}

@@ -6,24 +6,16 @@ use macroquad::prelude::*;
 
 use super::*;
 
-mod build_chunk_mesh;
-pub use build_chunk_mesh::build_chunk_meshes;
-
-mod build_chunk_model;
-pub use build_chunk_model::build_chunk_model;
+pub mod mesh;
+pub mod model;
+pub mod render_cube_byte;
 
 #[derive(Default, Clone, PartialEq)]
 pub struct ChunkModel(Option<[ModelLayer; CHUNK_SIZE_16]>);
 
+#[allow(dead_code)]
 impl ChunkModel {
     pub const EMPTY: ChunkModel = ChunkModel(None);
-
-    pub fn get(&self, x: usize, y: usize, z: usize) -> &BlockModel {
-        match &self.0 {
-            Some(arr) => arr[y].get(x, z),
-            None => &BlockModel::Empty,
-        }
-    }
 
     pub fn set(&mut self, x: usize, y: usize, z: usize, model: BlockModel) {
         match &mut self.0 {
@@ -48,9 +40,9 @@ impl ChunkModel {
 #[derive(Default, Clone, PartialEq, Deref, DerefMut)]
 pub struct ModelLayer(pub [[BlockModel; CHUNK_SIZE_16]; CHUNK_SIZE_16]);
 
+#[allow(dead_code)]
 impl ModelLayer {
-    #[rustfmt::skip]
-    pub const EMPTY: ModelLayer = ModelLayer([const{[const{BlockModel::Empty};CHUNK_SIZE_16]};CHUNK_SIZE_16]);
+    pub const EMPTY: ModelLayer = ModelLayer([const{[const{BlockModel::EMPTY};CHUNK_SIZE_16]};CHUNK_SIZE_16]);
 
     pub fn get(&self, x: usize, z: usize) -> &BlockModel {
         &self.0[x][z]
@@ -150,6 +142,24 @@ impl UvTexture {
     pub const GRASS_TOP: UvTexture = UvTexture::from_n(2);
     pub const STONE: UvTexture = UvTexture::from_n(3);
     pub const SAND: UvTexture = UvTexture::from_n(4);
+    pub fn get_vertices(&self, pos: BlockPos, side: BlockSide) -> Vec<Vertex> {
+        let coef = side.get_coef();
+        let corners = match side {
+            BlockSide::Py => [self.low_left(), self.low_right(), self.up_right(), self.low_right()],
+            BlockSide::Ny => [self.low_left(), self.low_right(), self.up_right(), self.low_right()],
+            BlockSide::Px => [self.low_left(), self.low_right(), self.up_right(), self.up_left()],
+            BlockSide::Nx => [self.low_right(), self.low_left(), self.up_left(), self.up_right()],
+            BlockSide::Pz => [self.low_right(), self.low_left(), self.up_left(), self.up_right()],
+            BlockSide::Nz => [self.low_right(), self.low_left(), self.up_left(), self.up_right()],
+        };
+        let (x, y, z) = (pos.x as f32, pos.y as f32, pos.z as f32);
+        let mut ans = vec![];
+        ans.push(vertex(vec3(coef[0][0] + x, coef[0][1] + y, coef[0][2] + z), corners[0]));
+        ans.push(vertex(vec3(coef[1][0] + x, coef[1][1] + y, coef[1][2] + z), corners[1]));
+        ans.push(vertex(vec3(coef[2][0] + x, coef[2][1] + y, coef[2][2] + z), corners[2]));
+        ans.push(vertex(vec3(coef[3][0] + x, coef[3][1] + y, coef[3][2] + z), corners[3]));
+        ans
+    }
 }
 
 impl Debug for UvTexture {
@@ -167,6 +177,8 @@ impl Default for UvTexture {
 }
 
 use macroquad::models::Vertex;
+use crate::world::render::mesh::PLANE_IND;
+use crate::world::render::render_cube_byte::RenderCubeByte;
 
 const WHITE: [u8; 4] = [u8::MAX, u8::MAX, u8::MAX, u8::MAX];
 
@@ -199,6 +211,7 @@ impl Add for BlockPos {
     }
 }
 
+#[allow(dead_code)]
 pub struct ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
     pub top: &'to BlockState,
     pub bottom: &'bo BlockState,
@@ -208,7 +221,7 @@ pub struct ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
     pub nz: &'nz BlockState,
 }
 
-#[rustfmt::skip]
+#[allow(dead_code)]
 impl<'to, 'bo, 'px, 'nx, 'pz, 'nz> ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
 
     const EMPTY: ConnectedBlocks<'static, 'static, 'static, 'static, 'static, 'static> 
@@ -226,6 +239,7 @@ impl<'to, 'bo, 'px, 'nx, 'pz, 'nz> ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz>
     }
 }
 
+#[allow(dead_code)]
 pub struct ConnectedChunks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
     pub top: &'to ChunkLayer,
     pub bottom: &'bo ChunkLayer,
@@ -235,7 +249,7 @@ pub struct ConnectedChunks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
     pub nz: &'nz ChunkLayer,
 }
 
-#[rustfmt::skip]
+#[allow(dead_code)]
 impl<'to, 'bo, 'px, 'nx, 'pz, 'nz> ConnectedChunks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
 
     pub const EMPTY: ConnectedChunks<'static, 'static, 'static, 'static, 'static, 'static> 
@@ -263,7 +277,9 @@ pub enum MyTexture {
     },
 }
 
+#[allow(dead_code)]
 impl MyTexture {
+
     const fn top(&self) -> Option<UvTexture> {
         match self {
             MyTexture::Transparent => None,
@@ -303,6 +319,7 @@ impl MyTexture {
 
 // TODO: Make texture depend on connected block
 // For example dirt will need to be merged with gravel etc.
+#[allow(dead_code)]
 const fn my_texture(bs: &BlockState, _conn: &ConnectedBlocks) -> MyTexture {
     match bs.block_type {
         BlockType::Air => MyTexture::Transparent,
@@ -317,126 +334,77 @@ const fn my_texture(bs: &BlockState, _conn: &ConnectedBlocks) -> MyTexture {
     }
 }
 
-#[derive(Default, Clone, PartialEq)]
-pub enum BlockModel {
-    #[default]
-    Empty,
-    NonCube,
-
-    // 1 texture on 1 visible side of the block
-    Top(UvTexture),
-    Bottom(UvTexture),
-    Px(UvTexture),
-    Nx(UvTexture),
-    Pz(UvTexture),
-    Nz(UvTexture),
-
-    // 1 texture on 2 visible sides of the block
-    TopPx(UvTexture),
-    TopNx(UvTexture),
-    TopPz(UvTexture),
-    TopNz(UvTexture),
-    BottomPx(UvTexture),
-    BottomNx(UvTexture),
-    BottomPz(UvTexture),
-    BottomNz(UvTexture),
-    PxPz(UvTexture),
-    PxNz(UvTexture),
-    NxPz(UvTexture),
-    NxNz(UvTexture),
-
-    // 2 textures on 2 visible sides of the block
-    TopPxDouble(UvTexture, UvTexture),
-    TopNxDouble(UvTexture, UvTexture),
-    TopPzDouble(UvTexture, UvTexture),
-    TopNzDouble(UvTexture, UvTexture),
-    BottomPxDouble(UvTexture, UvTexture),
-    BottomNxDouble(UvTexture, UvTexture),
-    BottomPzDouble(UvTexture, UvTexture),
-    BottomNzDouble(UvTexture, UvTexture),
-
-    // 1 texture on 3 visible sides of the block
-    TopPxPz(UvTexture),
-    TopPxNz(UvTexture),
-    TopNxPz(UvTexture),
-    TopNxNz(UvTexture),
-    BottomPxPz(UvTexture),
-    BottomPxNz(UvTexture),
-    BottomNxPz(UvTexture),
-    BottomNxNz(UvTexture),
-
-    // 2 textures on 3 visible sides of the block
-    TopPxPzDouble(UvTexture, UvTexture),
-    TopPxNzDouble(UvTexture, UvTexture),
-    TopNxPzDouble(UvTexture, UvTexture),
-    TopNxNzDouble(UvTexture, UvTexture),
-    BottomPxPzDouble(UvTexture, UvTexture),
-    BottomPxNzDouble(UvTexture, UvTexture),
-    BottomNxPzDouble(UvTexture, UvTexture),
-    BottomNxNzDouble(UvTexture, UvTexture),
+#[derive(Clone, PartialEq, Debug)]
+pub struct BlockModel {
+    pub render_byte: RenderCubeByte,
+    textures: TextureSet,
+}
+impl BlockModel {
+    const EMPTY: Self = BlockModel {
+        render_byte: RenderCubeByte::ALL,
+        textures: [None; 6],
+    };
 }
 
-impl Debug for BlockModel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Empty | Self::NonCube => write!(f, "[   ]"),
-            Self::Top(_) => write!(f, "[+  ]"),
-            Self::Bottom(_) => write!(f, "[-  ]"),
-            Self::Px(_) => write!(f, "[ + ]"),
-            Self::Nx(_) => write!(f, "[ - ]"),
-            Self::Pz(_) => write!(f, "[  +]"),
-            Self::Nz(_) => write!(f, "[  -]"),
-            Self::TopPx(_) => write!(f, "[++ ]"),
-            Self::TopNx(_) => write!(f, "[+- ]"),
-            Self::TopPz(_) => write!(f, "[+ +]"),
-            Self::TopNz(_) => write!(f, "[+ -]"),
-            Self::PxPz(_) => write!(f, "[+ +]"),
-            Self::PxNz(_) => write!(f, "[+ -]"),
-            Self::NxPz(_) => write!(f, "[- +]"),
-            Self::NxNz(_) => write!(f, "[- -]"),
-            Self::BottomPx(_) => write!(f, "[-+ ]"),
-            Self::BottomNx(_) => write!(f, "[-- ]"),
-            Self::BottomPz(_) => write!(f, "[- +]"),
-            Self::BottomNz(_) => write!(f, "[- -]"),
-            Self::TopPxDouble(_, _) => write!(f, "(++ )"),
-            Self::TopNxDouble(_, _) => write!(f, "(+- )"),
-            Self::TopPzDouble(_, _) => write!(f, "(+ +)"),
-            Self::TopNzDouble(_, _) => write!(f, "(+ -)"),
-            Self::BottomPxDouble(_, _) => write!(f, "(-+ )"),
-            Self::BottomNxDouble(_, _) => write!(f, "(-- )"),
-            Self::BottomPzDouble(_, _) => write!(f, "(- +)"),
-            Self::BottomNzDouble(_, _) => write!(f, "(- -)"),
-            Self::TopPxPz(_) => write!(f, "[+++]"),
-            Self::TopPxNz(_) => write!(f, "[++-]"),
-            Self::TopNxPz(_) => write!(f, "[+-+]"),
-            Self::TopNxNz(_) => write!(f, "[+--]"),
-            Self::BottomPxPz(_) => write!(f, "[-++]"),
-            Self::BottomPxNz(_) => write!(f, "[-+-]"),
-            Self::BottomNxPz(_) => write!(f, "[--+]"),
-            Self::BottomNxNz(_) => write!(f, "[---]"),
-            Self::TopPxPzDouble(_, _) => write!(f, "(+++)"),
-            Self::TopPxNzDouble(_, _) => write!(f, "(++-)"),
-            Self::TopNxPzDouble(_, _) => write!(f, "(+-+)"),
-            Self::TopNxNzDouble(_, _) => write!(f, "(+--)"),
-            Self::BottomPxPzDouble(_, _) => write!(f, "(-++)"),
-            Self::BottomPxNzDouble(_, _) => write!(f, "(-+-)"),
-            Self::BottomNxPzDouble(_, _) => write!(f, "(--+)"),
-            Self::BottomNxNzDouble(_, _) => write!(f, "(---)"),
+impl Default for BlockModel {
+    fn default() -> Self {
+        let textures = [None; 6];
+        Self {
+            render_byte: RenderCubeByte::from_block_type(&BlockType::Air),
+            textures,
         }
     }
 }
 
-impl Debug for ChunkModel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for y in (0..CHUNK_SIZE_16).rev() {
-            for x in 0..CHUNK_SIZE_16 {
-                for z in 0..CHUNK_SIZE_16 {
-                    self.get(x, y, z).fmt(f)?;
+impl BlockModel {
+    pub fn get_meshes(&self, atlas: &Texture2D, block_pos: BlockPos) -> Vec<Mesh> {
+        let mut ans = vec![];
+        for side_idx in 0..6 {
+            if self.render_byte.bool_in_pos(side_idx) {
+                if let Some(uv_texture) = self.textures[side_idx] {
+                    let side = BlockSide::from_position(side_idx);
+                    let vertices = uv_texture.get_vertices(block_pos, side);
+                    ans.push(Mesh {
+                        vertices,
+                        indices: PLANE_IND.to_vec(),
+                        texture: Some(atlas.clone()),
+                    })
                 }
-                write!(f, "\n")?;
             }
-            write!(f, "\n\n")?;
         }
-        Ok(())
+        ans
     }
 }
+
+#[derive(Debug)]
+pub enum BlockSide {
+    Py,
+    Ny,
+    Px,
+    Nx,
+    Pz,
+    Nz,
+}
+impl BlockSide {
+    pub fn from_position(pos: usize) -> Self {
+        match pos {
+            5 => Self::Py,
+            4 => Self::Ny,
+            3 => Self::Px,
+            2 => Self::Nx,
+            1 => Self::Pz,
+            _=> Self::Nz
+        }
+    }
+    fn get_coef(&self) -> [[f32; 3]; 4] {
+        match self {
+            BlockSide::Py => [[0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 1.0]],
+            BlockSide::Ny => [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [0.0, 0.0, 1.0]],
+            BlockSide::Px => [[1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
+            BlockSide::Nx => [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 1.0], [0.0, 1.0, 0.0]],
+            BlockSide::Pz => [[0.0, 0.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0], [0.0, 1.0, 1.0]],
+            BlockSide::Nz => [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]],
+        }
+    }
+}
+

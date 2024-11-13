@@ -1,6 +1,7 @@
 #![feature(const_fn_floating_point_arithmetic)]
 
 use macroquad::prelude::*;
+use std::time::Instant;
 
 mod grab;
 use grab::*;
@@ -11,6 +12,8 @@ use player::*;
 mod world;
 use world::render::*;
 use world::*;
+use crate::world::render::mesh::build_model_meshes;
+use crate::world::render::model::build_chunk_model;
 
 #[rustfmt::skip]
 const SKY_COLOR: Color = Color { r: 0.3, g: 0.3, b: 0.5, a: 1.0 };
@@ -34,20 +37,32 @@ pub async fn run_client() {
     let mut current_mouse_pos: CurrentMousePos = mouse_position().into();
 
     let mut grabbed = Grabbed::default();
-
-    let mut chunk_models: Vec<(ChunkPos, ChunkModel)> = Vec::with_capacity(100);
-
-    for x in -20..20 {
-        for z in -20..20 {
-            chunk_models.push((ChunkPos::new(x, 0, z), make_model(UvTexture::SAND)));
+    let mut chunk = Chunk::EMPTY;
+    let mut dec = 0;
+    for y in 0..CHUNK_SIZE_16 {
+        for x in 0..CHUNK_SIZE_16 {
+            for z in 0..CHUNK_SIZE_16 {
+                let r = dec..CHUNK_SIZE_16-dec;
+                *chunk.get_mut(x, y, z) = if !r.contains(&x) || !r.contains(&z) {
+                    BlockState::EMPTY
+                } else {
+                    BlockState::GRASS
+                };
+            }
         }
+        if y % 2 != 0 { dec += 1 };
     }
 
-    let chunk_meshes: Vec<_> = build_chunk_meshes(chunk_models, Some(atlas.clone())).collect();
-
     setup_mouse_cursor();
-    
+    let mut fps_mean = vec![];
+    let mut frame_mean = vec![];
+    let push_to_mean = |arr: &mut Vec<usize>, val: usize| -> usize {
+        arr.insert(0, val);
+        arr.truncate(100);
+        arr.iter().sum::<usize>() /100_usize
+    };
     loop {
+        let now = Instant::now();
         if is_key_pressed(KeyCode::Escape) { break; }
 
         update_grabbed_state_and_cursor_on_tab_press(&mut grabbed);
@@ -69,31 +84,30 @@ pub async fn run_client() {
             ..Default::default()
         });
 
+        draw_grid(20, 1., BLACK, GRAY);
+
+        let chunk_model = build_chunk_model( player_pos.0, front.0, ChunkPos::new(0, 0, 0), &chunk);
+
+        let chunk_meshes = build_model_meshes(chunk_model, Some(atlas.clone()));
+
         for chunk_mesh in &chunk_meshes {
             draw_mesh(&chunk_mesh);
         }
 
         /* Back to screen space */ set_default_camera();
-
-        print_n_meshes(&chunk_meshes);
-        render_text_overlay(player_pos, get_fps());
-
+        let fps = get_fps()  as usize;
+        let mean_fps = push_to_mean(&mut fps_mean, fps);
+        let frame = now.elapsed().as_micros() as usize;
+        let mean_frame = push_to_mean(&mut frame_mean, frame);
+        let fps_frame_str = format!("FPS: {} FRAME: {} mcs", mean_fps, mean_frame);
+        render_text_overlay(player_pos, fps_frame_str.as_str());
         last_mouse_pos.0 = mouse_position().into();
 
         next_frame().await
     }
 }
 
-fn make_model(tex: UvTexture) -> ChunkModel {
-    let mut model = ChunkModel::EMPTY;
-    for x in 0..16 {
-        for z in 0..16 {
-            model.set(x, 3, z, BlockModel::Top(tex))
-        }
-    }
-    model
-}
-
+#[allow(dead_code)]
 fn print_n_meshes(chunk_meshes: &Vec<Mesh>) {
     let y = 40.0 + 40.0 * 2.0;
     for (n, mesh) in chunk_meshes.into_iter().enumerate() {
@@ -114,20 +128,21 @@ fn print_n_meshes(chunk_meshes: &Vec<Mesh>) {
     }
 }
 
-fn render_text_overlay(player_pos: PlayerPos, fps: i32) {
+fn render_text_overlay(player_pos: PlayerPos, fps: &str) {
     draw_text(
         format!(
             "X: {:.2} Y: {:.2} Z: {:.2}",
             player_pos.x, player_pos.y, player_pos.z
         )
-        .as_str(),
+            .as_str(),
         10.0,
         40.0,
         60.0,
         BLACK,
     );
     draw_text(
-        format!("FPS: {}", fps).as_str(),
+        // format!("FPS: {}", fps).as_str(),
+        fps,
         10.0,
         40.0 + 40.0,
         60.0,
