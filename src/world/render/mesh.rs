@@ -1,7 +1,7 @@
 use macroquad::prelude::{Mesh, Texture2D};
 use crate::world::CHUNK_SIZE_16;
 use crate::world::render::{ChunkModel, WorldPos};
-
+use std::time::Instant;
 pub fn build_model_meshes(
     model: ChunkModel,
     atlas: Option<Texture2D>,
@@ -24,9 +24,11 @@ pub fn build_model_meshes(
                 pos.x = x as f32 + dx;
                 for z in 0..CHUNK_SIZE_16 {
                     let block = layer.get(x,z);
-                    pos.z = z as f32 + dz;
+                    if !block.render_byte.is_nothing() {
+                        pos.z = z as f32 + dz;
                     let block_meshes = block.get_meshes(&atlas, pos.clone());
                     ans.extend(block_meshes);
+                    }
                 }
             }
         }

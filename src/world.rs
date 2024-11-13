@@ -8,7 +8,7 @@ use macroquad::prelude::vec3;
 
 pub mod render;
 
-pub const CHUNK_SIZE_16: usize = 32;
+pub const CHUNK_SIZE_16: usize = 16;
 type TextureSet = [Option<UvTexture>; 6];
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
