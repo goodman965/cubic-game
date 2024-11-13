@@ -1,6 +1,7 @@
 #![feature(const_fn_floating_point_arithmetic)]
 
 use macroquad::prelude::*;
+use macroquad::telemetry::Frame;
 use std::time::Instant;
 
 mod grab;
@@ -40,7 +41,7 @@ pub async fn run_client() {
     let mut chunks = vec![];
     let material = vec![BlockState::GRASS, BlockState::STONE, BlockState::SAND, BlockState::DIRT];
 
-    for i in 0..16 {
+    for i in 0..24 {
         let mut chunk = Chunk::EMPTY;
         let mut dec = 0;
         for y in 0..CHUNK_SIZE_16 {
@@ -85,9 +86,23 @@ pub async fn run_client() {
     chunks[14].set_pos(0.0, y, 0.0 - size);
     chunks[15].set_pos(0.0 - size, y, 0.0 - size);
 
+    y = 0.0 - 3.0 * size;
+    chunks[16].set_pos(0.0, y, 0.0);
+    chunks[17].set_pos( 0.0 - size, y, 0.0);
+    chunks[18].set_pos(0.0, y, 0.0 - size);
+    chunks[19].set_pos(0.0 - size, y, 0.0 - size);
+
+    y = 2.0 * size;
+    chunks[20].set_pos(0.0, y, 0.0);
+    chunks[21].set_pos( 0.0 - size, y, 0.0);
+    chunks[22].set_pos(0.0, y, 0.0 - size);
+    chunks[23].set_pos(0.0 - size, y, 0.0 - size);
+
+
     setup_mouse_cursor();
     let mut fps_mean = vec![];
-    let mut frame_mean = vec![];
+    // let mut frame_mean = vec![];
+    let mut math_mean = vec![];
     let push_to_mean = |arr: &mut Vec<usize>, val: usize| -> usize {
         arr.insert(0, val);
         arr.truncate(100);
@@ -130,9 +145,10 @@ pub async fn run_client() {
         /* Back to screen space */ set_default_camera();
         let fps = get_fps()  as usize;
         let mean_fps = push_to_mean(&mut fps_mean, fps);
-        let frame = now.elapsed().as_micros() as usize;
-        let mean_frame = push_to_mean(&mut frame_mean, frame);
-        let fps_frame_str = format!("FPS: {} FRAME: {} mcs", mean_fps, mean_frame);
+        
+        let math = now.elapsed().as_micros() as usize;
+        let mean_math = push_to_mean(&mut math_mean, math);
+        let fps_frame_str = format!("FPS: {} Math: {} mcs", mean_fps, mean_math);
         render_text_overlay(player_pos, fps_frame_str.as_str());
         last_mouse_pos.0 = mouse_position().into();
 
