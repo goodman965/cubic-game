@@ -20,8 +20,8 @@ const SKY_COLOR: Color = Color { r: 0.3, g: 0.3, b: 0.5, a: 1.0 };
 
 #[rustfmt::skip]
 pub async fn run_client() {
-
-    let atlas: Texture2D = load_texture("assets/atlas.png").await.unwrap();
+    let atlas_data = include_bytes!("../assets/atlas.png");
+    let atlas: Texture2D = Texture2D::from_file_with_format(atlas_data, Some(ImageFormat::Png));
     atlas.set_filter(FilterMode::Nearest);
 
     let mut yaw = Yaw::default();
