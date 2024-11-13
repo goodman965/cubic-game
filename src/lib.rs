@@ -41,7 +41,7 @@ pub async fn run_client() {
     let mut chunks = vec![];
     let material = vec![BlockState::GRASS, BlockState::STONE, BlockState::SAND, BlockState::DIRT];
 
-    for i in 0..36 {
+    for i in 0..144 {
         let mut chunk = Chunk::EMPTY;
         let mut dec = 0;
         for y in 0..CHUNK_SIZE_16 {
@@ -63,8 +63,8 @@ pub async fn run_client() {
 
     let size = CHUNK_SIZE_16 as f32;
     let mut y = 0.0 - size;
-    let x = 0.0;
-    let z = 0.0;
+    let mut x = 0.0;
+    let mut z = 0.0;
     let mut i = 0;
     while i < 36 {
         chunks[i].set_pos(x, y, z);
@@ -78,6 +78,63 @@ pub async fn run_client() {
         chunks[i+6].set_pos(size, y, 0.0 - size);
         chunks[i+7].set_pos(0.0 - size, y, 0.0 - size);
         chunks[i+8].set_pos(0.0 - size, y, size);
+
+        i+=9;
+        y += size;
+    }
+
+    x = size *3.0;
+    y = 0.0 - size;
+    while i < 72 {
+        chunks[i].set_pos(x, y, z);
+        chunks[i+1].set_pos(x, y, z + 0.0 - size);
+        chunks[i+2].set_pos(x, y, z + size);
+
+        chunks[i+3].set_pos(x + size, y, z);
+        chunks[i+4].set_pos(x + 0.0 - size, y, z);
+        chunks[i+5].set_pos(x + size, y, z + size);
+
+        chunks[i+6].set_pos(x + size, y, 0.0 - size);
+        chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
+        chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+
+        i+=9;
+        y += size;
+    }
+
+    z = size *3.0;
+    x = 0.0;
+    y = 0.0 - size;
+    while i < 108 {
+        chunks[i].set_pos(x, y, z);
+        chunks[i+1].set_pos(x, y, z + 0.0 - size);
+        chunks[i+2].set_pos(x, y, z + size);
+
+        chunks[i+3].set_pos(x + size, y, z);
+        chunks[i+4].set_pos(x + 0.0 - size, y, z);
+        chunks[i+5].set_pos(x + size, y, z + size);
+
+        chunks[i+6].set_pos(x + size, y, z + 0.0 - size);
+        chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
+        chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+
+        i+=9;
+        y += size;
+    }
+    x = size *3.0;
+    y = 0.0 - size;
+    while i < 144 {
+        chunks[i].set_pos(x, y, z);
+        chunks[i+1].set_pos(x, y, z + 0.0 - size);
+        chunks[i+2].set_pos(x, y, z + size);
+
+        chunks[i+3].set_pos(x + size, y, z);
+        chunks[i+4].set_pos(x + 0.0 - size, y, z);
+        chunks[i+5].set_pos(x + size, y, z + size);
+
+        chunks[i+6].set_pos(x + size, y, z + 0.0 - size);
+        chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
+        chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
 
         i+=9;
         y += size;

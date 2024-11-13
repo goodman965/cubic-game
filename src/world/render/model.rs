@@ -18,7 +18,7 @@ pub fn build_chunk_model(
     let chunk_view_vec: Vec3 = chunk_center_pos - player_pos;
     let angle: f32 = player_front.angle_between(chunk_view_vec);
     let distance: f32 = player_pos.distance(chunk_center_pos);
-    if (angle > 65f32.to_radians()) || distance > 10.0 * CHUNK_SIZE_16 as f32 {
+    if (angle > 65f32.to_radians()) || distance > 20.0 * CHUNK_SIZE_16 as f32 {
         return ChunkModel::EMPTY;
     }
 
