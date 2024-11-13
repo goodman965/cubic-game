@@ -1,7 +1,7 @@
 use std::array::from_fn as arr_fn;
 
 use crate::world::render::render_cube_byte::RenderCubeByte;
-use crate::world::render::{BlockPos, UvTexture};
+use crate::world::render::{UvTexture, WorldPos};
 use macroquad::math::Vec3;
 use macroquad::prelude::vec3;
 // use rand::Rng;
@@ -82,10 +82,11 @@ pub enum Biome {
     Jungle,
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Chunk {
     pub biome: Biome,
     pub blocks: [ChunkLayer; CHUNK_SIZE_16],
+    pub pos: WorldPos,
 }
 
 #[allow(dead_code)]
@@ -96,6 +97,7 @@ impl Chunk {
         Chunk {
             biome: Biome::Plains,
             blocks: arr_fn(|y| ChunkLayer::from_fn(|x, z| func(x, y, z))),
+            pos: Default::default(),
         }
     }
 
@@ -129,8 +131,8 @@ impl Chunk {
         }
     }
 
-    pub fn get_block_visible_sides(block_pos: BlockPos, player_pos: Vec3) -> RenderCubeByte {
-        let block_pos = vec3(block_pos.x as f32, block_pos.y as f32, block_pos.z as f32);
+    pub fn get_block_visible_sides(block_pos: WorldPos, player_pos: Vec3) -> RenderCubeByte {
+        let block_pos = vec3(block_pos.x, block_pos.y, block_pos.z);
 
         let (player_py, player_px, player_pz) = (
             player_pos.y > block_pos.y, player_pos.x > block_pos.x, player_pos.z > block_pos.z
@@ -152,7 +154,20 @@ impl Chunk {
     pub const EMPTY: Chunk = Chunk {
         biome: Biome::Plains,
         blocks: [ChunkLayer::EMPTY; CHUNK_SIZE_16],
+        pos: WorldPos{
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
     };
+    pub fn get_pos(&self) -> WorldPos {
+        self.pos
+    }
+    pub fn set_pos(&mut self, x: f32, y: f32, z: f32) {
+        self.pos.x = x;
+        self.pos.y = y;
+        self.pos.z = z;
+    }
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]

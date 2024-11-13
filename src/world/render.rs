@@ -86,29 +86,13 @@ impl<'ch, 'to, 'bo, 'px, 'nx, 'pz, 'nz> ChunkPlusConnected<'ch, 'to, 'bo, 'px, '
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct ChunkPos {
-    pub x: isize,
-    pub y: isize,
-    pub z: isize,
+#[derive(Debug, Default, PartialEq, Copy, Clone)]
+pub struct WorldPos {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
-impl ChunkPos {
-    pub fn new(x: isize, y: isize, z: isize) -> Self {
-        Self { x, y, z }
-    }
-}
-
-impl Into<BlockPos> for ChunkPos {
-    fn into(self) -> BlockPos {
-        let ChunkPos { x, y, z } = self;
-        BlockPos {
-            x: x * CHUNK_SIZE_16 as isize,
-            y: y * CHUNK_SIZE_16 as isize,
-            z: z * CHUNK_SIZE_16 as isize,
-        }
-    }
-}
 
 #[derive(Deref, Clone, Copy, PartialEq)]
 pub struct UvTexture(Vec2);
@@ -142,7 +126,7 @@ impl UvTexture {
     pub const GRASS_TOP: UvTexture = UvTexture::from_n(2);
     pub const STONE: UvTexture = UvTexture::from_n(3);
     pub const SAND: UvTexture = UvTexture::from_n(4);
-    pub fn get_vertices(&self, pos: BlockPos, side: BlockSide) -> Vec<Vertex> {
+    pub fn get_vertices(&self, pos: WorldPos, side: BlockSide) -> Vec<Vertex> {
         let coef = side.get_coef();
         let corners = match side {
             BlockSide::Py => [self.low_left(), self.low_right(), self.up_right(), self.low_right()],
@@ -191,25 +175,25 @@ const fn vertex(pos: Vec3, uv: Vec2) -> Vertex {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct BlockPos {
-    pub x: isize,
-    pub y: isize,
-    pub z: isize,
-}
+// #[derive(Debug, Clone, Copy)]
+// pub struct BlockPos {
+//     pub x: isize,
+//     pub y: isize,
+//     pub z: isize,
+// }
 
-impl Add for BlockPos {
-    type Output = BlockPos;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let BlockPos { x, y, z } = self;
-        BlockPos {
-            x: x + rhs.x,
-            y: y + rhs.y,
-            z: z + rhs.z,
-        }
-    }
-}
+// impl Add for BlockPos {
+//     type Output = BlockPos;
+//
+//     fn add(self, rhs: Self) -> Self::Output {
+//         let BlockPos { x, y, z } = self;
+//         BlockPos {
+//             x: x + rhs.x,
+//             y: y + rhs.y,
+//             z: z + rhs.z,
+//         }
+//     }
+// }
 
 #[allow(dead_code)]
 pub struct ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
@@ -357,13 +341,13 @@ impl Default for BlockModel {
 }
 
 impl BlockModel {
-    pub fn get_meshes(&self, atlas: &Texture2D, block_pos: BlockPos) -> Vec<Mesh> {
+    pub fn get_meshes(&self, atlas: &Texture2D, block_pos: WorldPos) -> Vec<Mesh> {
         let mut ans = vec![];
         for side_idx in 0..6 {
             if self.render_byte.bool_in_pos(side_idx) {
                 if let Some(uv_texture) = self.textures[side_idx] {
                     let side = BlockSide::from_position(side_idx);
-                    let vertices = uv_texture.get_vertices(block_pos, side);
+                    let vertices = uv_texture.get_vertices(block_pos.clone(), side);
                     ans.push(Mesh {
                         vertices,
                         indices: PLANE_IND.to_vec(),

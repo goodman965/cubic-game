@@ -10,10 +10,9 @@ mod player;
 use player::*;
 
 mod world;
-use world::render::*;
-use world::*;
 use crate::world::render::mesh::build_model_meshes;
 use crate::world::render::model::build_chunk_model;
+use world::*;
 
 #[rustfmt::skip]
 const SKY_COLOR: Color = Color { r: 0.3, g: 0.3, b: 0.5, a: 1.0 };
@@ -37,21 +36,54 @@ pub async fn run_client() {
     let mut current_mouse_pos: CurrentMousePos = mouse_position().into();
 
     let mut grabbed = Grabbed::default();
-    let mut chunk = Chunk::EMPTY;
-    let mut dec = 0;
-    for y in 0..CHUNK_SIZE_16 {
-        for x in 0..CHUNK_SIZE_16 {
-            for z in 0..CHUNK_SIZE_16 {
-                let r = dec..CHUNK_SIZE_16-dec;
-                *chunk.get_mut(x, y, z) = if !r.contains(&x) || !r.contains(&z) {
-                    BlockState::EMPTY
-                } else {
-                    BlockState::GRASS
-                };
+
+    let mut chunks = vec![];
+    let material = vec![BlockState::GRASS, BlockState::STONE, BlockState::SAND, BlockState::DIRT];
+
+    for i in 0..16 {
+        let mut chunk = Chunk::EMPTY;
+        let mut dec = 0;
+        for y in 0..CHUNK_SIZE_16 {
+            for x in 0..CHUNK_SIZE_16 {
+                for z in 0..CHUNK_SIZE_16 {
+                    let r = dec..CHUNK_SIZE_16-dec;
+                    *chunk.get_mut(x, y, z) = if !r.contains(&x) || !r.contains(&z) {
+                        BlockState::EMPTY
+                    } else {
+                        //BlockState::GRASS
+                        material[i % 4].clone()
+                    };
+                }
             }
+            if y % 2 != 0 { dec += 1 };
         }
-        if y % 2 != 0 { dec += 1 };
+        chunks.push(chunk);
     }
+
+    let size = CHUNK_SIZE_16 as f32;
+    let mut y = 0.0;
+    chunks[0].set_pos(0.0, y, 0.0);
+    chunks[1].set_pos( 0.0 - size, y, 0.0);
+    chunks[2].set_pos(0.0, y, 0.0 - size);
+    chunks[3].set_pos(0.0 - size, y, 0.0 - size);
+
+    y = size;
+    chunks[4].set_pos(0.0, y, 0.0);
+    chunks[5].set_pos( 0.0 - size, y, 0.0);
+    chunks[6].set_pos(0.0, y, 0.0 - size);
+    chunks[7].set_pos(0.0 - size, y, 0.0 - size);
+
+    y = 0.0 - size;
+    chunks[8].set_pos(0.0, y, 0.0);
+    chunks[9].set_pos(0.0 - size, y, 0.0);
+    chunks[10].set_pos(0.0, y, 0.0 - size);
+    chunks[11].set_pos(0.0 - size, y, 0.0 - size);
+
+    y = 0.0 - 2.0 * size;
+    chunks[12].set_pos(0.0, y, 0.0);
+    chunks[13].set_pos( 0.0 - size, y, 0.0);
+    chunks[14].set_pos(0.0, y, 0.0 - size);
+    chunks[15].set_pos(0.0 - size, y, 0.0 - size);
 
     setup_mouse_cursor();
     let mut fps_mean = vec![];
@@ -61,6 +93,7 @@ pub async fn run_client() {
         arr.truncate(100);
         arr.iter().sum::<usize>() /100_usize
     };
+
     loop {
         let now = Instant::now();
         if is_key_pressed(KeyCode::Escape) { break; }
@@ -86,12 +119,12 @@ pub async fn run_client() {
 
         draw_grid(20, 1., BLACK, GRAY);
 
-        let chunk_model = build_chunk_model( player_pos.0, front.0, ChunkPos::new(0, 0, 0), &chunk);
-
-        let chunk_meshes = build_model_meshes(chunk_model, Some(atlas.clone()));
-
-        for chunk_mesh in &chunk_meshes {
-            draw_mesh(&chunk_mesh);
+        for chunk in &chunks {
+            let chunk_model = build_chunk_model( player_pos.0, front.0, chunk);
+            let chunk_meshes = build_model_meshes(chunk_model, Some(atlas.clone()), chunk.get_pos());
+            for chunk_mesh in &chunk_meshes {
+                draw_mesh(&chunk_mesh);
+            }
         }
 
         /* Back to screen space */ set_default_camera();
