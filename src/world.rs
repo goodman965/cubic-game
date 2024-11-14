@@ -1,5 +1,5 @@
 use std::array::from_fn as arr_fn;
-
+use std::ops::Range;
 use crate::world::render::render_cube_byte::RenderCubeByte;
 use crate::world::render::{UvTexture, WorldPos};
 use macroquad::math::Vec3;
@@ -91,6 +91,7 @@ pub struct Chunk {
 
 #[allow(dead_code)]
 impl Chunk {
+    const RANGE: Range<usize> = 0..CHUNK_SIZE_16;
     /// (usize, usize, usize) - pos in chunk 0..16
     #[allow(dead_code)]
     pub fn from_fn(mut func: impl FnMut(usize, usize, usize) -> BlockState) -> Chunk {
@@ -111,20 +112,40 @@ impl Chunk {
         self.blocks[y].get(x, z)
     }
 
+    fn calc_indexes(x: usize, y: usize, z: usize) -> [[usize; 3]; 6] {
+        [
+            [x, y, z - 1], //nz
+            [x, y, z + 1], //pz
+            [x - 1, y, z], //nx
+            [x + 1, y, z], //px
+            [x, y - 1, z], //ny
+            [x, y + 1, z], //py
+        ]
+    }
+    pub fn is_isolated(&self, x: usize, y: usize, z: usize) -> bool {
+        let indexes = Self::calc_indexes(x, y, z);
+        for i in 0..6 {
+            if Self::RANGE.contains(&indexes[i][0]) &&
+                Self::RANGE.contains(&indexes[i][1]) &&
+                Self::RANGE.contains(&indexes[i][2])
+            {
+                if !self.get(x, y, z).is_empty() {
+                    return false;
+                }
+            }
+        }
+        true
+    }
     pub fn get_neighbours(&self, x: usize, y: usize, z: usize) -> RenderCubeByte {
-        let mut ans = RenderCubeByte::ALL;
-        //0 0 0 0 0 0 0 0 - _ _ py ny px nx pz nz
-        ans.set_bit(0, self.has_visible_block_at(x, y, z - 1)); //nx
-        ans.set_bit(1, self.has_visible_block_at(x, y, z + 1)); //pz
-        ans.set_bit(2, self.has_visible_block_at(x - 1, y, z)); //nx
-        ans.set_bit(3, self.has_visible_block_at(x + 1, y, z)); //px
-        ans.set_bit(4, self.has_visible_block_at(x, y - 1, z)); //ny
-        ans.set_bit(5, self.has_visible_block_at(x, y + 1, z)); //py
+        let mut ans = RenderCubeByte::NOTHING;
+        let indexes = Self::calc_indexes(x, y, z);
+        for i in 0..6 {
+            ans.set_bit(i, self.has_visible_block_at(indexes[i][0], indexes[i][1], indexes[i][2]));
+        }
         ans
     }
     pub fn has_visible_block_at(&self, x: usize, y: usize, z: usize) -> bool {
-        let range = 0..CHUNK_SIZE_16;
-        if range.contains(&x) && range.contains(&y) && range.contains(&z) {
+        if Self::RANGE.contains(&x) && Self::RANGE.contains(&y) && Self::RANGE.contains(&z) {
             !self.get(x, y, z).is_empty()
         } else {
             false
@@ -154,11 +175,11 @@ impl Chunk {
     pub const EMPTY: Chunk = Chunk {
         biome: Biome::Plains,
         blocks: [ChunkLayer::EMPTY; CHUNK_SIZE_16],
-        pos: WorldPos{
+        pos: WorldPos {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-        }
+        },
     };
     pub fn get_pos(&self) -> WorldPos {
         self.pos

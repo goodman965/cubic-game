@@ -1,7 +1,6 @@
 #![feature(const_fn_floating_point_arithmetic)]
 
 use macroquad::prelude::*;
-use macroquad::telemetry::Frame;
 use std::time::Instant;
 
 mod grab;
@@ -41,7 +40,8 @@ pub async fn run_client() {
     let mut chunks = vec![];
     let material = vec![BlockState::GRASS, BlockState::STONE, BlockState::SAND, BlockState::DIRT];
 
-    for i in 0..144 {
+    let chunk_count = 144;
+    for i in 0..chunk_count {
         let mut chunk = Chunk::EMPTY;
         let mut dec = 0;
         for y in 0..CHUNK_SIZE_16 {
@@ -66,79 +66,92 @@ pub async fn run_client() {
     let mut x = 0.0;
     let mut z = 0.0;
     let mut i = 0;
-    while i < 36 {
-        chunks[i].set_pos(x, y, z);
-        chunks[i+1].set_pos(x, y, 0.0 - size);
-        chunks[i+2].set_pos(x, y, size);
+    if chunk_count >= 36 {
+        while i < 36 {
+            chunks[i].set_pos(x, y, z);
+            chunks[i+1].set_pos(x, y, 0.0 - size);
+            chunks[i+2].set_pos(x, y, size);
 
-        chunks[i+3].set_pos(size, y, z);
-        chunks[i+4].set_pos(0.0 - size, y, z);
-        chunks[i+5].set_pos(size, y, size);
+            chunks[i+3].set_pos(size, y, z);
+            chunks[i+4].set_pos(0.0 - size, y, z);
+            chunks[i+5].set_pos(size, y, size);
 
-        chunks[i+6].set_pos(size, y, 0.0 - size);
-        chunks[i+7].set_pos(0.0 - size, y, 0.0 - size);
-        chunks[i+8].set_pos(0.0 - size, y, size);
+            chunks[i+6].set_pos(size, y, 0.0 - size);
+            chunks[i+7].set_pos(0.0 - size, y, 0.0 - size);
+            chunks[i+8].set_pos(0.0 - size, y, size);
 
-        i+=9;
-        y += size;
+            i+=9;
+            y += size;
+        }
     }
 
-    x = size *3.0;
-    y = 0.0 - size;
-    while i < 72 {
-        chunks[i].set_pos(x, y, z);
-        chunks[i+1].set_pos(x, y, z + 0.0 - size);
-        chunks[i+2].set_pos(x, y, z + size);
 
-        chunks[i+3].set_pos(x + size, y, z);
-        chunks[i+4].set_pos(x + 0.0 - size, y, z);
-        chunks[i+5].set_pos(x + size, y, z + size);
+    if chunk_count >= 72 {
+        x = size *3.0;
+        y = 0.0 - size;
+        while i < 72 {
+            chunks[i].set_pos(x, y, z);
+            chunks[i+1].set_pos(x, y, z + 0.0 - size);
+            chunks[i+2].set_pos(x, y, z + size);
 
-        chunks[i+6].set_pos(x + size, y, 0.0 - size);
-        chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
-        chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+            chunks[i+3].set_pos(x + size, y, z);
+            chunks[i+4].set_pos(x + 0.0 - size, y, z);
+            chunks[i+5].set_pos(x + size, y, z + size);
 
-        i+=9;
-        y += size;
+            chunks[i+6].set_pos(x + size, y, 0.0 - size);
+            chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
+            chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+
+            i+=9;
+            y += size;
+        }
     }
 
-    z = size *3.0;
-    x = 0.0;
-    y = 0.0 - size;
-    while i < 108 {
-        chunks[i].set_pos(x, y, z);
-        chunks[i+1].set_pos(x, y, z + 0.0 - size);
-        chunks[i+2].set_pos(x, y, z + size);
 
-        chunks[i+3].set_pos(x + size, y, z);
-        chunks[i+4].set_pos(x + 0.0 - size, y, z);
-        chunks[i+5].set_pos(x + size, y, z + size);
+    if chunk_count >= 108 {
+        z = size *3.0;
+        x = 0.0;
+        y = 0.0 - size;
+        while i < 108 {
+            chunks[i].set_pos(x, y, z);
+            chunks[i+1].set_pos(x, y, z + 0.0 - size);
+            chunks[i+2].set_pos(x, y, z + size);
 
-        chunks[i+6].set_pos(x + size, y, z + 0.0 - size);
-        chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
-        chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+            chunks[i+3].set_pos(x + size, y, z);
+            chunks[i+4].set_pos(x + 0.0 - size, y, z);
+            chunks[i+5].set_pos(x + size, y, z + size);
 
-        i+=9;
-        y += size;
+            chunks[i+6].set_pos(x + size, y, z + 0.0 - size);
+            chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
+            chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+
+            i+=9;
+            y += size;
+        }
     }
-    x = size *3.0;
-    y = 0.0 - size;
-    while i < 144 {
-        chunks[i].set_pos(x, y, z);
-        chunks[i+1].set_pos(x, y, z + 0.0 - size);
-        chunks[i+2].set_pos(x, y, z + size);
 
-        chunks[i+3].set_pos(x + size, y, z);
-        chunks[i+4].set_pos(x + 0.0 - size, y, z);
-        chunks[i+5].set_pos(x + size, y, z + size);
 
-        chunks[i+6].set_pos(x + size, y, z + 0.0 - size);
-        chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
-        chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+    if chunk_count >= 144 {
+        x = size *3.0;
+        y = 0.0 - size;
+        while i < 144 {
+            chunks[i].set_pos(x, y, z);
+            chunks[i+1].set_pos(x, y, z + 0.0 - size);
+            chunks[i+2].set_pos(x, y, z + size);
 
-        i+=9;
-        y += size;
+            chunks[i+3].set_pos(x + size, y, z);
+            chunks[i+4].set_pos(x + 0.0 - size, y, z);
+            chunks[i+5].set_pos(x + size, y, z + size);
+
+            chunks[i+6].set_pos(x + size, y, z + 0.0 - size);
+            chunks[i+7].set_pos(x + 0.0 - size, y, z + 0.0 - size);
+            chunks[i+8].set_pos(x + 0.0 - size, y, z + size);
+
+            i+=9;
+            y += size;
+        }
     }
+
    
 
     setup_mouse_cursor();
@@ -176,11 +189,23 @@ pub async fn run_client() {
 
         draw_grid(20, 1., BLACK, GRAY);
 
+        let mut model_time = 0;
+        let mut mesh_time = 0;
+        let mut draw_time = 0;
         for chunk in &chunks {
-            let chunk_model = build_chunk_model( player_pos.0, front.0, chunk);
-            let chunk_meshes = build_model_meshes(chunk_model, Some(atlas.clone()), chunk.get_pos());
-            for chunk_mesh in &chunk_meshes {
-                draw_mesh(&chunk_mesh);
+            let t = Instant::now();
+            if let Some(chunk_model) = build_chunk_model( player_pos.0, front.0, chunk){
+                model_time += t.elapsed().as_micros();
+                let t = Instant::now();
+                let chunk_meshes = build_model_meshes(chunk_model, Some(atlas.clone()), chunk.get_pos());
+                mesh_time = t.elapsed().as_micros();
+                let t = Instant::now();
+                for chunk_mesh in &chunk_meshes {
+                    draw_mesh(&chunk_mesh);
+                }
+                draw_time = t.elapsed().as_micros();
+            } else {
+                model_time += t.elapsed().as_micros();
             }
         }
 
@@ -190,8 +215,12 @@ pub async fn run_client() {
         
         let math = now.elapsed().as_micros() as usize;
         let mean_math = push_to_mean(&mut math_mean, math);
+        let info_str = format!( "X: {:.2} Y: {:.2} Z: {:.2}", player_pos.x, player_pos.y, player_pos.z);
         let fps_frame_str = format!("FPS: {} Math: {} mcs", mean_fps, mean_math);
-        render_text_overlay(player_pos, fps_frame_str.as_str());
+        let time_str = format!("model {} mesh {} draw {}", model_time, mesh_time, draw_time);
+        render_text_overlay(info_str.as_str(),1);
+        render_text_overlay(fps_frame_str.as_str(),2);
+        render_text_overlay(time_str.as_str(),3);
         last_mouse_pos.0 = mouse_position().into();
 
         next_frame().await
@@ -219,24 +248,11 @@ fn print_n_meshes(chunk_meshes: &Vec<Mesh>) {
     }
 }
 
-fn render_text_overlay(player_pos: PlayerPos, fps: &str) {
-    draw_text(
-        format!(
-            "X: {:.2} Y: {:.2} Z: {:.2}",
-            player_pos.x, player_pos.y, player_pos.z
-        )
-            .as_str(),
-        10.0,
-        40.0,
-        60.0,
-        BLACK,
-    );
-    draw_text(
-        // format!("FPS: {}", fps).as_str(),
-        fps,
-        10.0,
-        40.0 + 40.0,
-        60.0,
-        BLACK,
+fn render_text_overlay(text: &str, at_line: usize) {
+    draw_text(text,
+              10.0,
+              40.0 * at_line as f32,
+              60.0,
+              BLACK,
     );
 }
