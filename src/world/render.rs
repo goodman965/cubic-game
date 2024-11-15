@@ -10,14 +10,22 @@ pub mod mesh;
 pub mod model;
 pub mod render_cube_byte;
 
-#[derive(Default, Clone, PartialEq)]
-pub struct ChunkModel(Option<[ModelLayer; CHUNK_SIZE_16]>);
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct ChunkModel(pub Option<[ModelLayer; CHUNK_SIZE_16]>);
 
 #[allow(dead_code)]
 impl ChunkModel {
     pub const EMPTY: ChunkModel = ChunkModel(None);
 
+    //faster than default!
+    pub fn new_empty() -> Self {
+        let ml = ModelLayer([[BlockModel::EMPTY; CHUNK_SIZE_16]; CHUNK_SIZE_16]);
+        Self { 0: Some([ml; CHUNK_SIZE_16]) }
+    }
     pub fn set(&mut self, x: usize, y: usize, z: usize, model: BlockModel) {
+        let side_px = model.render_byte.get_bit(3);
+        let side_pz = model.render_byte.get_bit(1);
+        if (side_px || side_pz) && y != 0 {}
         match &mut self.0 {
             Some(arr) => *arr[y].get_mut(x, z) = model,
             None => {
@@ -35,14 +43,26 @@ impl ChunkModel {
             None => true,
         }
     }
+    pub fn get_render_byte(&self, x: usize, y: usize, z: usize) -> Option<RenderCubeByte> {
+        if let Some(model) = self.0 {
+            Some(model[y].get(x, z).render_byte)
+        } else {
+            None
+        }
+    }
+    pub fn set_render_byte(&mut self, x: usize, y: usize, z: usize, new_byte: RenderCubeByte) {
+        if let Some(mut model) = self.0 {
+            model[y].get_mut(x, z).render_byte = new_byte;
+        }
+    }
 }
 
-#[derive(Default, Clone, PartialEq, Deref, DerefMut)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Deref, DerefMut)]
 pub struct ModelLayer(pub [[BlockModel; CHUNK_SIZE_16]; CHUNK_SIZE_16]);
 
 #[allow(dead_code)]
 impl ModelLayer {
-    pub const EMPTY: ModelLayer = ModelLayer([const{[const{BlockModel::EMPTY};CHUNK_SIZE_16]};CHUNK_SIZE_16]);
+    pub const EMPTY: ModelLayer = ModelLayer([const { [const { BlockModel::EMPTY }; CHUNK_SIZE_16] }; CHUNK_SIZE_16]);
 
     pub fn get(&self, x: usize, z: usize) -> &BlockModel {
         &self.0[x][z]
@@ -136,7 +156,7 @@ impl UvTexture {
             BlockSide::Pz => [self.low_right(), self.low_left(), self.up_left(), self.up_right()],
             BlockSide::Nz => [self.low_right(), self.low_left(), self.up_left(), self.up_right()],
         };
-        let (x, y, z) = (pos.x as f32, pos.y as f32, pos.z as f32);
+        let (x, y, z) = (pos.x, pos.y, pos.z);
         let mut ans = vec![];
         ans.push(vertex(vec3(coef[0][0] + x, coef[0][1] + y, coef[0][2] + z), corners[0]));
         ans.push(vertex(vec3(coef[1][0] + x, coef[1][1] + y, coef[1][2] + z), corners[1]));
@@ -207,16 +227,15 @@ pub struct ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
 
 #[allow(dead_code)]
 impl<'to, 'bo, 'px, 'nx, 'pz, 'nz> ConnectedBlocks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
-
-    const EMPTY: ConnectedBlocks<'static, 'static, 'static, 'static, 'static, 'static> 
-                = ConnectedBlocks::new(
-                    &BlockState::EMPTY, &BlockState::EMPTY, &BlockState::EMPTY,
-                    &BlockState::EMPTY, &BlockState::EMPTY, &BlockState::EMPTY,
-                );
+    const EMPTY: ConnectedBlocks<'static, 'static, 'static, 'static, 'static, 'static>
+    = ConnectedBlocks::new(
+        &BlockState::EMPTY, &BlockState::EMPTY, &BlockState::EMPTY,
+        &BlockState::EMPTY, &BlockState::EMPTY, &BlockState::EMPTY,
+    );
 
     pub const fn new(
-        top: &'to BlockState, bottom: &'bo BlockState, 
-        px: &'px BlockState, nx: &'nx BlockState, 
+        top: &'to BlockState, bottom: &'bo BlockState,
+        px: &'px BlockState, nx: &'nx BlockState,
         pz: &'pz BlockState, nz: &'nz BlockState,
     ) -> Self {
         Self { top, bottom, px, nx, pz, nz }
@@ -235,16 +254,15 @@ pub struct ConnectedChunks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
 
 #[allow(dead_code)]
 impl<'to, 'bo, 'px, 'nx, 'pz, 'nz> ConnectedChunks<'to, 'bo, 'px, 'nx, 'pz, 'nz> {
-
-    pub const EMPTY: ConnectedChunks<'static, 'static, 'static, 'static, 'static, 'static> 
-            = ConnectedChunks::new(
-                &ChunkLayer::EMPTY, &ChunkLayer::EMPTY, &ChunkLayer::EMPTY,
-                &ChunkLayer::EMPTY, &ChunkLayer::EMPTY, &ChunkLayer::EMPTY,
-            );
+    pub const EMPTY: ConnectedChunks<'static, 'static, 'static, 'static, 'static, 'static>
+    = ConnectedChunks::new(
+        &ChunkLayer::EMPTY, &ChunkLayer::EMPTY, &ChunkLayer::EMPTY,
+        &ChunkLayer::EMPTY, &ChunkLayer::EMPTY, &ChunkLayer::EMPTY,
+    );
 
     pub const fn new(
-        top: &'to ChunkLayer, bottom: &'bo ChunkLayer, 
-        px: &'px ChunkLayer, nx: &'nx ChunkLayer, 
+        top: &'to ChunkLayer, bottom: &'bo ChunkLayer,
+        px: &'px ChunkLayer, nx: &'nx ChunkLayer,
         pz: &'pz ChunkLayer, nz: &'nz ChunkLayer,
     ) -> Self {
         Self { top, bottom, px, nx, pz, nz }
@@ -263,7 +281,6 @@ pub enum MyTexture {
 
 #[allow(dead_code)]
 impl MyTexture {
-
     const fn top(&self) -> Option<UvTexture> {
         match self {
             MyTexture::Transparent => None,
@@ -315,39 +332,37 @@ const fn my_texture(bs: &BlockState, _conn: &ConnectedBlocks) -> MyTexture {
         },
         BlockType::Stone => MyTexture::AllSides(UvTexture::STONE),
         BlockType::Sand => MyTexture::AllSides(UvTexture::SAND),
+        BlockType::Tile => MyTexture::AllSides(UvTexture::SAND),
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub struct BlockModel {
     pub render_byte: RenderCubeByte,
-    textures: TextureSet,
+    block_type: BlockType,
 }
 impl BlockModel {
     const EMPTY: Self = BlockModel {
-        render_byte: RenderCubeByte::ALL,
-        textures: [None; 6],
+        render_byte: RenderCubeByte::NOTHING,
+        block_type: BlockType::Air,
     };
 }
 
 impl Default for BlockModel {
     fn default() -> Self {
-        let textures = [None; 6];
-        Self {
-            render_byte: RenderCubeByte::from_block_type(&BlockType::Air),
-            textures,
-        }
+        Self::EMPTY
     }
 }
 
 impl BlockModel {
-    pub fn get_meshes(&self, atlas: &Texture2D, block_pos: WorldPos) -> Vec<Mesh> {
+    pub fn get_meshes(&self, atlas: &Texture2D, pos: WorldPos) -> Vec<Mesh> {
         let mut ans = vec![];
+        let textures = self.block_type.get_textures();
         for side_idx in 0..6 {
             if self.render_byte.bool_in_pos(side_idx) {
-                if let Some(uv_texture) = self.textures[side_idx] {
+                if let Some(uv_texture) = textures[side_idx] {
                     let side = BlockSide::from_position(side_idx);
-                    let vertices = uv_texture.get_vertices(block_pos.clone(), side);
+                    let vertices = uv_texture.get_vertices(pos, side);
                     ans.push(Mesh {
                         vertices,
                         indices: PLANE_IND.to_vec(),
@@ -360,7 +375,7 @@ impl BlockModel {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum BlockSide {
     Py,
     Ny,
@@ -377,7 +392,7 @@ impl BlockSide {
             3 => Self::Px,
             2 => Self::Nx,
             1 => Self::Pz,
-            _=> Self::Nz
+            _ => Self::Nz
         }
     }
     fn get_coef(&self) -> [[f32; 3]; 4] {

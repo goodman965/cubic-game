@@ -2,7 +2,7 @@ use crate::world::BlockType;
 
 //bits order
 //0 0 0 0 0 0 0 0 - _ _ py ny px nx pz nz
-#[derive(Default, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, Debug)]
 pub struct RenderCubeByte(u8);
 
 impl RenderCubeByte {
@@ -27,7 +27,7 @@ impl RenderCubeByte {
         self.0 = self.0 & other.0;
     }
 
-    pub fn from_block_type(bt: &BlockType) -> Self {
+    pub fn from_block_type(bt: BlockType) -> Self {
         let value = match bt {
             BlockType::Air => 0,
             _ => 0b00111111,
